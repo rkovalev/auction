@@ -17,6 +17,7 @@ public class AuctionDiscrete {
         INVALID_ORDER_SIDE,
 
         AUCTION_ORDERS_LIMIT,
+        AUCTION_ORDERS_QTY_LIMIT,
         AUCTION_ORDERS_ACCEPT_ENDED
     }
 
@@ -99,10 +100,20 @@ public class AuctionDiscrete {
         int priceIdx = (int)Math.round(price / 0.01d);
 
         if('B' == side) {
-            sumOrderQtysBuySide[priceIdx] += size;
+            int sumQty = sumOrderQtysBuySide[priceIdx] + size;
+            if(sumQty <= 0) {
+                return RejectCode.AUCTION_ORDERS_QTY_LIMIT;
+            }
+
+            sumOrderQtysBuySide[priceIdx] = sumQty;
             maxBuyIdx = Math.max(maxBuyIdx, priceIdx);
         } else if('S' == side) {
-            sumOrderQtysSellSide[priceIdx] += size;
+            int sumQty = sumOrderQtysSellSide[priceIdx] + size;
+            if(sumQty <= 0) {
+                return RejectCode.AUCTION_ORDERS_QTY_LIMIT;
+            }
+
+            sumOrderQtysSellSide[priceIdx] = sumQty;
             minSellIdx = Math.min(minSellIdx, priceIdx);
         } else {
             return RejectCode.INVALID_ORDER_SIDE;
