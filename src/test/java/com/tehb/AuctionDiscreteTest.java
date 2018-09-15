@@ -40,20 +40,25 @@ class AuctionDiscreteTest {
 
     @Test
     void performanceTest() {
-        logger.info("Start adding orders");
         Random rnd = new Random();
+
+        logger.info("Start adding orders");
+        long addOrdersStartTime = System.currentTimeMillis();
         for(int i = 0; i < 1_000_000; i++) {
             char side = rnd.nextBoolean() ? 'B': 'S';
             double price = 1 + 99 * rnd.nextDouble();
             int size = 1 + rnd.nextInt(100);
             auctionDiscrete.addOrder(side, price, size);
         }
+        long addOrdersElapsedTime = System.currentTimeMillis() - addOrdersStartTime;
+        logger.info("Add orders time, ms: {}", addOrdersElapsedTime);
+        assertTrue(addOrdersElapsedTime <= 100);
 
         logger.info("Start auction");
-        long startTime = System.currentTimeMillis();
+        long auctionMatchStartTime = System.currentTimeMillis();
         String result = auctionDiscrete.getAuctionResult();
-        long elapsedTime = (System.currentTimeMillis() - startTime);
-        logger.info("Result: {} time, ms: {}", result, elapsedTime);
-        assertTrue(elapsedTime <= 3);
+        long auctionMatchElapsedTime = System.currentTimeMillis() - auctionMatchStartTime;
+        logger.info("Result: {} time, ms: {}", result, auctionMatchElapsedTime);
+        assertTrue(auctionMatchElapsedTime <= 3);
     }
 }

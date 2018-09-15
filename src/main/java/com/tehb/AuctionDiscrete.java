@@ -136,22 +136,22 @@ public class AuctionDiscrete {
             return;                                         // order prices are not intersected
         }
 
-        int aggressiveSellToFill = 0;
+        int aggressiveSellQtyToFill = 0;
         for(int i = minSellIdx; i <= maxBuyIdx; i++) {
-            aggressiveSellToFill += sumOrderQtysSellSide[i];
+            aggressiveSellQtyToFill += sumOrderQtysSellSide[i];
 
             int buyQty = sumOrderQtysBuySide[i];
 
-            if(buyQty >= aggressiveSellToFill) {
-                auctionSize += aggressiveSellToFill;
-                aggressiveSellToFill = 0;
+            if(buyQty >= aggressiveSellQtyToFill) {
+                auctionSize += aggressiveSellQtyToFill;
+                aggressiveSellQtyToFill = 0;
             } else {
                 auctionSize += buyQty;
-                aggressiveSellToFill -= buyQty;
+                aggressiveSellQtyToFill -= buyQty;
             }
         }
 
-        auctionPrice =  0.01d * (aggressiveSellToFill > 0 ? maxBuyIdx : minSellIdx);
+        auctionPrice =  0.01d * (aggressiveSellQtyToFill > 0 ? maxBuyIdx : minSellIdx);
     }
 
     @Override
@@ -161,6 +161,12 @@ public class AuctionDiscrete {
         sw.append(ticker);
         sw.append(" orders limit: ");
         sw.append(String.valueOf(ordersLimit));
+        sw.append(" min price, rub: ");
+        sw.append(String.valueOf(minPriceRub));
+        sw.append(" max price, rub: ");
+        sw.append(String.valueOf(maxPriceRub));
+        sw.append(" max size: ");
+        sw.append(String.valueOf(maxSizeLimit));
         return sw.toString();
     }
 }
