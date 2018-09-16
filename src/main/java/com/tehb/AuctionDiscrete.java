@@ -17,7 +17,7 @@ public class AuctionDiscrete {
         INVALID_ORDER_SIDE,
 
         AUCTION_ORDERS_LIMIT,
-        AUCTION_ORDERS_QTY_LIMIT,
+        AUCTION_ORDERS_QTY_LIMIT,          // overflow
         AUCTION_ORDERS_ACCEPT_ENDED
     }
 
@@ -33,7 +33,7 @@ public class AuctionDiscrete {
     private double auctionPrice = -1;     // -1 auction matching is not started yet, 0 optimal price calculated but there was no match
     private int auctionSize;
 
-    public AuctionDiscrete(String ticker, int ordersLimit, int minPriceRub, int maxPriceRub, int maxSizeLimit) {
+    AuctionDiscrete(String ticker, int ordersLimit, int minPriceRub, int maxPriceRub, int maxSizeLimit) {
         if(ordersLimit <= 0) {
             throw new RuntimeException("Invalid orders limit for ticker: " + ticker);    // die fast in case problems with initial params
         }
@@ -59,7 +59,7 @@ public class AuctionDiscrete {
         logger.info("Created new instance of discreet auction: {}", this);
     }
 
-    public RejectCode addOrder(String orderStr) {
+    RejectCode addOrder(String orderStr) {
         String[] orderProps = orderStr.split(" ");
         if(orderProps.length != 3) {
             return RejectCode.INVALID_ORDER_STRING_FORMAT;
@@ -80,7 +80,7 @@ public class AuctionDiscrete {
         }
     }
 
-    public synchronized RejectCode addOrder(char side, double price, int size) {
+    synchronized RejectCode addOrder(char side, double price, int size) {
         if(auctionPrice >= 0) {
             return RejectCode.AUCTION_ORDERS_ACCEPT_ENDED;
         }
@@ -123,7 +123,7 @@ public class AuctionDiscrete {
         return RejectCode.NONE;
     }
 
-    public synchronized String getAuctionResult() {
+    synchronized String getAuctionResult() {
         if(auctionPrice == -1) {
             findPriceAndSize();
         }
@@ -148,21 +148,37 @@ public class AuctionDiscrete {
         }
 
         int aggressiveSellQtyToFill = 0;
+        int lastSellIdx = 0;                                // used for avg price calculations
+        int finalPriceIdx = 0;
+
         for(int i = minSellIdx; i <= maxBuyIdx; i++) {
-            aggressiveSellQtyToFill += sumOrderQtysSellSide[i];
-
             int buyQty = sumOrderQtysBuySide[i];
+            int sellQty = sumOrderQtysSellSide[i];
 
-            if(buyQty >= aggressiveSellQtyToFill) {
+            if(sellQty > 0) {
+                aggressiveSellQtyToFill += sellQty;
+                lastSellIdx = i;
+            }
+
+            if(buyQty == 0 || aggressiveSellQtyToFill == 0) {
+                continue;                                   // nothing to match
+            }
+
+            if(finalPriceIdx == 0) {
+                finalPriceIdx = lastSellIdx == i ? i : (lastSellIdx + i + 1) / 2;       // rounding up
+            }
+
+            if(buyQty > aggressiveSellQtyToFill) {
                 auctionSize += aggressiveSellQtyToFill;
                 aggressiveSellQtyToFill = 0;
             } else {
                 auctionSize += buyQty;
                 aggressiveSellQtyToFill -= buyQty;
+                finalPriceIdx = lastSellIdx == i ? i : (lastSellIdx + i + 1) / 2;       // rounding up
             }
         }
 
-        auctionPrice =  0.01d * (aggressiveSellQtyToFill > 0 ? maxBuyIdx : minSellIdx);
+        auctionPrice =  0.01d * finalPriceIdx;
     }
 
     @Override
